@@ -44,8 +44,8 @@ namespace FileSignature
             //thats't the question how many threads is optional
             //we have the file read operations and it could be slow
             //compution of hash depends on the block size (bigger is slower)
-            //lets be ready for big blocks and utilize all cores
-            int threadCount = (int) Math.Min(Environment.ProcessorCount, fileInfo.Length / blockSize + (fileInfo.Length % blockSize == 0 ? 0 : 1));
+            //lets be ready for big blocks and utilize all cores if expected number of blocks is greater than number of cores
+            int threadCount = (int) Math.Min(Environment.ProcessorCount, fileInfo.Length / blockSize + (fileInfo.Length % blockSize == 0 ? 0 : 1)) - 1;
 
             using var stream = File.Open(filePath, FileMode.Open, FileAccess.Read);
             using var sha256 = SHA256.Create();
@@ -60,6 +60,9 @@ namespace FileSignature
                 threads.Add(thread);
                 thread.Start();
             }
+
+            //lets use the current thread as well
+            new BlockProcessor(reader, calculator, blockSize).Process();
 
             foreach (var thread in threads)
             {
